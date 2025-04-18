@@ -1,92 +1,61 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const ordersRouter = require("./routes/ordersRouter");
+const morgan = require("morgan");
+
 const app = express();
 
+app.use(morgan("combined"));
 app.use(bodyParser.json());
 
-// Mock data for food truck orders
-let orders = [
-  { id: 1, item: "Taco", quantity: 2, customer: "Alice" },
-  { id: 2, item: "Burger", quantity: 1, customer: "Bob" },
-  { id: 3, item: "Nachos", quantity: 1, customer: "Alice" },
-];
-
-app.get("/orders", (req, res) => {
-  res.json(orders);
+app.get("/", (req, res) => {
+  res.send("🚚 Welcome to the Food Truck!");
 });
 
-app.get("/orders/search", (req, res) => {
-  const { customer, item } = req.query;
-  console.log("cust: ", customer);
-  console.log("item: ", item);
-  let filteredOrders = [...orders];
-
-  if (customer) {
-    filteredOrders = filteredOrders.filter(
-      (order) => order.customer.toLowerCase() === customer.toLowerCase()
-    );
-  }
-
-  if (item) {
-    filteredOrders = filteredOrders.filter(
-      (order) => order.item.toLowerCase() === item.toLowerCase()
-    );
-  }
-
-  res.json(filteredOrders);
+app.get("/hours/contact", (req, res) => {
+  res.send("🕒 We are open from 11am to 7pm!");
 });
 
-// GET a single order by ID
-app.get("/orders/:id", (req, res) => {
-  const orderId = parseInt(req.params.id);
-  const order = orders.find((o) => o.id === orderId);
-
-  if (order) {
-    res.json(order);
-  } else {
-    res.status(404).json({ error: "Order not found" });
-  }
+app.get("/contact", (req, res) => {
+  res.send(
+    "<p style='background-color: yellow'>📞 Contact us at 555-FOOD or hello@foodtruck.com</p>"
+  );
 });
 
-app.post("/orders", (req, res) => {
-  console.log("in POST /orders");
-  const { item, quantity, customer } = req.body;
-  const newOrder = {
-    id: orders.length + 1,
-    item,
-    quantity,
-    customer,
-  };
-
-  orders = [...orders, newOrder];
-  console.log(orders);
-
-  res.status(201).json(newOrder);
+app.get("/menu", (req, res) => {
+  res.send(`
+  <html>
+    <head>
+      <title>Menu</title>
+    </head>
+    <body>
+      <h1>🥙 Our Menu</h1>
+      <ul>
+        <li>Tacos</li>
+        <li>Quesadillas</li>
+        <li>Smoothies</li>
+      </ul>
+    </body>
+  </html>`);
 });
 
-app.put("/orders/:id", (req, res) => {
-  const orderId = parseInt(req.params.id);
-  const { item, quantity, customer } = req.body;
-  const index = orders.findIndex((o) => o.id === orderId);
-  if (index !== -1) {
-    orders[index] = { id: orderId, item, quantity, customer };
-    res.json(orders[index]);
-  } else {
-    res.status(404).json({ error: "Order not found" });
+app.get("/api/user", async (req, res) => {
+  try {
+    const response = await fetch("https://randomuser.me/api/?results=3");
+    const data = await response.json();
+    const people = data.results;
+    console.log(people);
+
+    res.json(people);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user" });
   }
 });
 
-app.delete("/orders/:id", (req, res) => {
-  console.log(orders);
-  const orderId = parseInt(req.params.id);
-  const index = orders.findIndex((o) => o.id === orderId);
+app.use("/orders", ordersRouter);
 
-  if (index !== -1) {
-    orders.splice(index, 1);
-    res.sendStatus(204); // ✅ No Content
-  } else {
-    res.status(404).json({ error: "Order not found" });
-  }
+app.use((req, res) => {
+  res.status(404).send("404 Not Found");
 });
 
 app.listen(3000, () => {
